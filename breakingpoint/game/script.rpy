@@ -58,8 +58,8 @@ init python:
             for point in self.points:
                 point[1] += y_delta
                 
-        def back(self):
-            y_delta = 5
+        def back(self, extra=0):
+            y_delta = 5 + extra
             
             for point in self.points:
                 point[1] += y_delta
@@ -75,6 +75,15 @@ init python:
             
             for point in self.points:
                 point[0] += x_delta
+                
+        def is_off_screen(self):
+            if not self.top_left[0] in range(0, config.screen_width):
+                return True
+                
+            if not self.top_left[1] in range(0, config.screen_height):
+                return True
+                
+            return False
             
         def render(self):
             #return renpy.image
@@ -121,7 +130,7 @@ screen sample:
     
 screen control:
     $ rec1_status = rec2.is_colliding(rec1)
-    $ obs1_status = rec2.is_colliding(obs1)
+    $ obs1_status = obs1.is_colliging(rec1)
     
     textbutton "Forward" action Jump('forward_control')
     textbutton "Back" action Jump('back_control') ypos 0.1
@@ -230,7 +239,11 @@ label main_loop:
                 
                 rec1.swerve()
                 rec3.swerve()
-                obs1.back()
+                store.obs1.back(10)
+                
+                if obs1.is_off_screen():
+                    store.obs1 = Rec((150, 50), (230, 50), (150, 10), (230, 10), property="back")
+                
                 renpy.show_screen('sample')
                 renpy.pause(0.5)
                 full_counter += 1
