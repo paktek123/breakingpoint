@@ -1,4 +1,4 @@
-﻿
+
 define e = Character('Eileen', color="#c8ffc8")
 
 
@@ -52,8 +52,8 @@ init python:
                 point[1] += y_delta
             
             
-        def forward(self):
-            y_delta = -5
+        def forward(self, extra=0):
+            y_delta = -5 - extra
             
             for point in self.points:
                 point[1] += y_delta
@@ -93,61 +93,81 @@ init python:
             return '<Rec>: {} {} {} {}'.format(self.top_left[0], self.top_left[1], self.width, self.height)
             
 init:
-    $ start_x = 350
-    $ start_y = 50
-    $ car_width = 100
-    $ car_height = 150
-    $ car_gap = 30
+    $ start_x = 140 #/ config.screen_width
+    $ start_y = 50 #/ config.screen_height
+    $ car_width = 70 #/ config.screen_width
+    $ car_height = 120 #/ config.screen_height
+    $ car_gap = 50 #/ config.screen_height
     
     $ rec1 = Rec((start_x, start_y + car_height), (start_x + car_width, start_y + car_height), (start_x, start_y), (start_x + car_width, start_y), )#"back") 
     $ rec2 = Rec((start_x, start_y + car_gap + 2*car_height), (start_x + car_width, start_y + car_gap + 2*car_height), (start_x, start_y + car_gap + car_height), (start_x + car_width, start_y + car_gap + car_height)) 
     $ rec3 = Rec((start_x, start_y + 2*car_gap + 3*car_height), (start_x + car_width, start_y + 2*car_gap + 3*car_height), (start_x, start_y + 2*car_gap + 2*car_height), (start_x + car_width, start_y + 2*car_gap + 2*car_height),)# "forward")
     
-    $ obs1 = Rec((150, 50), (230, 50), (150, 10), (230, 10))  
+    $ obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10))  
+    $ obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10)) 
     
     image rec = "slot.png"
     image barricade = im.Scale("barricade.png", 50, 10)
-    image road = im.Scale("road.png", 800, 600)
-    image tree = im.Scale("tree.png", 100, 200)
-    image tree2 = im.Scale("tree.png", 100, 200)
-    image light = im.Scale("light.png", 100, 200)
-    image light2 = im.Flip(im.Scale("light.png", 100, 200), horizontal=True)
+    image road = im.Scale("road.png", config.screen_width, config.screen_height)
+    image tree = im.Scale("tree.png", 60, 160)
+    image tree2 = im.Scale("tree.png", 60, 160)
+    image light = im.Scale("light.png", 60, 160)
+    image light2 = im.Flip(im.Scale("light.png", 60, 160), horizontal=True)
     image traffic = im.Scale("trafficlight.png", 100, 200)
     image redcircle = im.Scale("redcircle.png", 80, 80)
+    image up_arrow = im.Scale("up.png", 40, 40)
+    #image down_arrow = im.Flip(im.Scale("up.png", 40, 40), vertical=True)
     
-    $ road_left = Position(xpos=100, ypos=-200)
-    $ road_right = Position(xpos=600, ypos=-200)
-    $ road_left_tree = Position(xpos=50, ypos=-200)
-    $ road_right_tree = Position(xpos=650, ypos=-200)
+    image down_arrow:
+        "up.png"
+        size (40, 40) rotate 180
+        
+    image left_arrow:
+        "up.png"
+        size (40, 40) rotate 270
+        
+    image right_arrow:
+        "up.png"
+        size (40, 40) rotate 90
+    
+    $ road_left = Position(xpos=30, ypos=-200)
+    $ road_right = Position(xpos=280, ypos=-200)
+    $ road_left_tree = Position(xpos=30, ypos=-200)
+    $ road_right_tree = Position(xpos=280, ypos=-200)
     
     
 screen sample:
     
     add "rec" pos rec1.top_left size rec1.dimensions
-    #add "rec" pos rec2.top_left size rec2.dimensions
+    add "rec" pos rec2.top_left size rec2.dimensions
     add "rec" pos rec3.top_left size rec3.dimensions
     add "barricade" pos obs1.top_left size obs1.dimensions
+    add "barricade" pos obs2.top_left size obs2.dimensions
     
 screen control:
     $ rec1_status = rec2.is_colliding(rec1)
-    $ obs1_status = obs1.is_colliging(rec1)
+    $ obs1_status = obs1.is_colliding(rec1)
     
-    textbutton "Forward" action Jump('forward_control')
-    textbutton "Back" action Jump('back_control') ypos 0.1
-    textbutton "Right" action Jump('right_control') ypos 0.2
-    textbutton "Left" action Jump('left_control') ypos 0.3
-    text "[rec1_status]" xpos 0.8
-    text "[obs1_status]" xpos 0.9
+    imagebutton idle "up_arrow" hover "up_arrow" action Jump('forward_control') hovered Jump('forward_control') alternate Jump('forward_control') xpos 280 ypos 0.5
+    #textbutton "Forward" action Jump('forward_control') hovered Jump('forward_control') alternate Jump('forward_control')
+    imagebutton idle "down_arrow" hover "down_arrow" action Jump('back_control') hovered Jump('back_control') alternate Jump('back_control') xpos 272 ypos 0.61
+    #textbutton "Back" action Jump('back_control') ypos 0.1 hovered Jump('back_control') alternate Jump('back_control')
+    imagebutton idle "right_arrow" hover "right_arrow" action Jump('right_control') hovered Jump('right_control') alternate Jump('right_control') xpos 295 ypos 0.55
+    #textbutton "Right" action Jump('right_control') ypos 0.2 hovered Jump('right_control') alternate Jump('right_control')
+    imagebutton idle "left_arrow" hover "left_arrow" action Jump('left_control') hovered Jump('left_control') alternate Jump('left_control') xpos 250 ypos 0.55
+    #textbutton "Left" action Jump('left_control') ypos 0.3 hovered Jump('left_control') alternate Jump('left_control')
+    #text "[rec1_status]" xpos 0.8
+    #text "[obs1_status]" xpos 0.9
     text "[full_counter]" xpos 0.7
-    add "rec" pos rec2.top_left size rec2.dimensions
-    add "redcircle" xpos 0.85 ypos 0.4
-    text "{color=#000}[speed_limit]{/color}" xpos 0.88 ypos 0.45
+    #add "rec" pos rec2.top_left size rec2.dimensions
+    #add "redcircle" xpos 0.85 ypos 0.4
+    #text "{color=#000}[speed_limit]{/color}" xpos 0.88 ypos 0.45
     
 label forward_control:
     hide screen control
     python:
         full_counter += 1
-    $ rec2.forward()
+    $ rec2.forward(5)
     jump main_loop
     
 label back_control:
@@ -239,15 +259,21 @@ label main_loop:
                 
                 rec1.swerve()
                 rec3.swerve()
+                rec2.back(-2)
                 store.obs1.back(10)
+                store.obs2.back(5)
                 
                 if obs1.is_off_screen():
-                    store.obs1 = Rec((150, 50), (230, 50), (150, 10), (230, 10), property="back")
+                    store.obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10), property="back")
+                    
+                if obs2.is_off_screen():
+                    store.obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10), property="back") 
                 
                 renpy.show_screen('sample')
                 renpy.pause(0.5)
                 full_counter += 1
 
+    #$ rec2.back()
     $ swerve(1000)
     
     e "Once you add a story, pictures, and music, you can release it to the world!"
