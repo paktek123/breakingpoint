@@ -1,13 +1,15 @@
-
+﻿
 define e = Character('Eileen', color="#c8ffc8")
 
 
 init python:
+    import copy
+    
     full_counter = 0
     full_movement = None
     
     class Rec:
-        def __init__(self, bottom_left, bottom_right, top_left, top_right, property=None):
+        def __init__(self, img, bottom_left, bottom_right, top_left, top_right, property=None):
             self.bottom_left = list(bottom_left)
             self.bottom_right = list(bottom_right)
             self.top_left = list(top_left)
@@ -16,7 +18,19 @@ init python:
             self.height = bottom_left[1] - top_left[1]
             self.dimensions = (self.width, self.height)
             self.points = [self.bottom_left, self.bottom_right, self.top_left, self.top_right]
+            self.original_points = [tuple(point) for point in self.points]
+            self.original_top_left = tuple(self.top_left)
             self.property = property
+            self.hidden = False
+            self.img = img
+            
+        def __eq__(self, other):
+            return self.top_left == other.top_left
+            
+        def respawn(self):
+            self.points = [list(point) for point in self.original_points]
+            self.bottom_left, self.bottom_right, self.top_left, self.top_right = list(self.points[0]), list(self.points[1]), list(self.points[2]), list(self.points[3])
+            self.hidden = False
             
         def is_colliding(self, rectangle):
             # top left corner colliding
@@ -83,6 +97,12 @@ init python:
             if not self.top_left[1] in range(0, config.screen_height):
                 return True
                 
+            if not self.bottom_left[0] in range(0, config.screen_width):
+                return True
+                
+            if not self.bottom_left[1] in range(0, config.screen_height):
+                return True
+                
             return False
             
         def render(self):
@@ -99,13 +119,6 @@ init:
     $ car_height = 120 #/ config.screen_height
     $ car_gap = 50 #/ config.screen_height
     
-    $ rec1 = Rec((start_x, start_y + car_height), (start_x + car_width, start_y + car_height), (start_x, start_y), (start_x + car_width, start_y), )#"back") 
-    $ rec2 = Rec((start_x, start_y + car_gap + 2*car_height), (start_x + car_width, start_y + car_gap + 2*car_height), (start_x, start_y + car_gap + car_height), (start_x + car_width, start_y + car_gap + car_height)) 
-    $ rec3 = Rec((start_x, start_y + 2*car_gap + 3*car_height), (start_x + car_width, start_y + 2*car_gap + 3*car_height), (start_x, start_y + 2*car_gap + 2*car_height), (start_x + car_width, start_y + 2*car_gap + 2*car_height),)# "forward")
-    
-    $ obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10))  
-    $ obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10)) 
-    
     image rec = "slot.png"
     image barricade = im.Scale("barricade.png", 50, 10)
     image road = im.Scale("road.png", config.screen_width, config.screen_height)
@@ -115,47 +128,68 @@ init:
     image light2 = im.Flip(im.Scale("light.png", 60, 160), horizontal=True)
     image traffic = im.Scale("trafficlight.png", 100, 200)
     image redcircle = im.Scale("redcircle.png", 80, 80)
-    image up_arrow = im.Scale("up.png", 40, 40)
+    #image up_arrow = im.Scale("up.png", 40, 40)
     #image down_arrow = im.Flip(im.Scale("up.png", 40, 40), vertical=True)
+    
+    image up_arrow:
+        "up.png"
+        size (40, 40) alpha 0.5
     
     image down_arrow:
         "up.png"
-        size (40, 40) rotate 180
+        size (40, 40) rotate 180 alpha 0.5
         
     image left_arrow:
         "up.png"
-        size (40, 40) rotate 270
+        size (40, 40) rotate 270 alpha 0.5
         
     image right_arrow:
         "up.png"
-        size (40, 40) rotate 90
+        size (40, 40) rotate 90 alpha 0.5
     
     $ road_left = Position(xpos=30, ypos=-200)
     $ road_right = Position(xpos=280, ypos=-200)
     $ road_left_tree = Position(xpos=30, ypos=-200)
     $ road_right_tree = Position(xpos=280, ypos=-200)
     
+label load_resources:
     
+    $ rec1 = Rec("rec", (start_x, start_y + car_height), (start_x + car_width, start_y + car_height), (start_x, start_y), (start_x + car_width, start_y), )#"back") 
+    $ rec2 = Rec("rec", (start_x, start_y + car_gap + 2*car_height), (start_x + car_width, start_y + car_gap + 2*car_height), (start_x, start_y + car_gap + car_height), (start_x + car_width, start_y + car_gap + car_height)) 
+    $ rec3 = Rec("rec", (start_x, start_y + 2*car_gap + 3*car_height), (start_x + car_width, start_y + 2*car_gap + 3*car_height), (start_x, start_y + 2*car_gap + 2*car_height), (start_x + car_width, start_y + 2*car_gap + 2*car_height),)# "forward")
+    
+    $ obs1 = Rec("barricade", (40, 50), (90, 50), (40, 10), (90, 10))  
+    $ obs2 = Rec("barricade", (250, 50), (300, 50), (250, 10), (300, 10)) 
+    
+    $ truck = Rec("rec", (200, 590), (250, 590), (200, 470), (250, 470)) 
+    
+    $ other_objects = [store.rec1, store.rec3, store.obs1, store.obs2] # store.truck]
+    
+    return
+
 screen sample:
     
-    add "rec" pos rec1.top_left size rec1.dimensions
     add "rec" pos rec2.top_left size rec2.dimensions
-    add "rec" pos rec3.top_left size rec3.dimensions
-    add "barricade" pos obs1.top_left size obs1.dimensions
-    add "barricade" pos obs2.top_left size obs2.dimensions
+    
+    for obj in other_objects:
+        if not obj.hidden:
+            add obj.img pos obj.top_left size obj.dimensions
+        
+    #add "rec" pos rec1.top_left size rec1.dimensions
+    #add "rec" pos rec2.top_left size rec2.dimensions
+    #add "rec" pos rec3.top_left size rec3.dimensions
+    #add "barricade" pos obs1.top_left size obs1.dimensions
+    #add "barricade" pos obs2.top_left size obs2.dimensions
     
 screen control:
     $ rec1_status = rec2.is_colliding(rec1)
     $ obs1_status = obs1.is_colliding(rec1)
     
     imagebutton idle "up_arrow" hover "up_arrow" action Jump('forward_control') hovered Jump('forward_control') alternate Jump('forward_control') xpos 280 ypos 0.5
-    #textbutton "Forward" action Jump('forward_control') hovered Jump('forward_control') alternate Jump('forward_control')
     imagebutton idle "down_arrow" hover "down_arrow" action Jump('back_control') hovered Jump('back_control') alternate Jump('back_control') xpos 272 ypos 0.61
-    #textbutton "Back" action Jump('back_control') ypos 0.1 hovered Jump('back_control') alternate Jump('back_control')
     imagebutton idle "right_arrow" hover "right_arrow" action Jump('right_control') hovered Jump('right_control') alternate Jump('right_control') xpos 295 ypos 0.55
-    #textbutton "Right" action Jump('right_control') ypos 0.2 hovered Jump('right_control') alternate Jump('right_control')
     imagebutton idle "left_arrow" hover "left_arrow" action Jump('left_control') hovered Jump('left_control') alternate Jump('left_control') xpos 250 ypos 0.55
-    #textbutton "Left" action Jump('left_control') ypos 0.3 hovered Jump('left_control') alternate Jump('left_control')
+    
     #text "[rec1_status]" xpos 0.8
     #text "[obs1_status]" xpos 0.9
     text "[full_counter]" xpos 0.7
@@ -196,6 +230,8 @@ label start:
     scene road #with dissolve
     $ speed_limit = 30
     
+    call load_resources
+    
     show tree at road_left_tree:
         linear 4.0 yalign 3.0
         linear 0.0 yalign 0.0
@@ -223,7 +259,11 @@ label main_loop:
     python:
         import random
         
-        def move_recs(movement):
+        def move_recs(movement, off_screen=True):
+            
+            if off_screen:
+                movement = 'apart'
+            
             if movement == "back":
                 store.speed_limit = 20
             elif movement == "forward":
@@ -241,6 +281,32 @@ label main_loop:
                 rec1.property = movement
                 rec3.property = movement
         
+        def clean_items(items):
+            for item in items:
+                if item.is_off_screen():
+                    item.hidden = True
+                    items.remove(item)
+                    
+                if rec2.is_colliding(item):
+                    renpy.jump('gameover')
+            
+        
+        def normal_movement():
+            rec1.swerve()
+            rec3.swerve()
+            rec2.back(-2)
+            
+            if not store.obs1.hidden:
+                store.obs1.back(10)
+                
+            if not store.obs2.hidden:
+                store.obs2.back(5)
+                
+        def truck_movement():
+                
+            if not store.truck.hidden:
+                store.truck.forward(10)
+        
         def swerve(limit):
             move_choice = ["back", "forward", "apart", "squeeze", None]
             global full_counter
@@ -255,19 +321,33 @@ label main_loop:
                 if not full_counter % 10:
                     full_movement = random.choice(move_choice)
                 
-                move_recs(full_movement)
+                if 20 < full_counter < 120:
+                    move_recs(full_movement, off_screen=True)
+                    
+                    if store.truck in other_objects:
+                        truck_movement()
+                    
+                    if store.rec1 in other_objects or store.rec3 in other_objects:
+                        pass
+                    else:
+                        other_objects.append(store.truck)
+                    
+                else:
+                    move_recs(full_movement)
                 
-                rec1.swerve()
-                rec3.swerve()
-                rec2.back(-2)
-                store.obs1.back(10)
-                store.obs2.back(5)
+                normal_movement()
                 
+                clean_items(other_objects)
+                        
+                
+                # respawn
                 if obs1.is_off_screen():
-                    store.obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10), property="back")
+                    store.obs1.respawn()
+                    #store.obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10), property="back")
                     
                 if obs2.is_off_screen():
-                    store.obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10), property="back") 
+                    store.obs2.respawn()
+                    #store.obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10), property="back") 
                 
                 renpy.show_screen('sample')
                 renpy.pause(0.5)
@@ -279,3 +359,16 @@ label main_loop:
     e "Once you add a story, pictures, and music, you can release it to the world!"
 
     return
+    
+label gameover:
+    hide screen control
+    hide screen sample
+    hide tree
+    hide tree2
+    hide light
+    hide light2
+    "GAMEOVER"
+    "Your score is [full_counter]"
+    $ full_counter = 0
+    return
+    #$ renpy.full_restart()
