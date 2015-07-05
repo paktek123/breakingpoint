@@ -27,10 +27,11 @@ init python:
         def __eq__(self, other):
             return self.top_left == other.top_left
             
-        def respawn(self):
+        def respawn(self, other_objects):
             self.points = [list(point) for point in self.original_points]
-            self.bottom_left, self.bottom_right, self.top_left, self.top_right = list(self.points[0]), list(self.points[1]), list(self.points[2]), list(self.points[3])
+            self.bottom_left, self.bottom_right, self.top_left, self.top_right = self.points[0], self.points[1], self.points[2], self.points[3]
             self.hidden = False
+            other_objects.append(self)
             
         def is_colliding(self, rectangle):
             # top left corner colliding
@@ -110,7 +111,7 @@ init python:
             return Solid((0, 0, 0, 150), area=(self.top_left[0], self.top_left[1], self.width, self.height))
             
         def __repr__(self):
-            return '<Rec>: {} {} {} {}'.format(self.top_left[0], self.top_left[1], self.width, self.height)
+            return '<Rec>: {} {} {} {} {}'.format(self.img, self.top_left[0], self.top_left[1], self.width, self.height)
             
 init:
     $ start_x = 140 #/ config.screen_width
@@ -161,7 +162,8 @@ label load_resources:
     $ obs1 = Rec("barricade", (40, 50), (90, 50), (40, 10), (90, 10))  
     $ obs2 = Rec("barricade", (250, 50), (300, 50), (250, 10), (300, 10)) 
     
-    $ truck = Rec("rec", (200, 590), (250, 590), (200, 470), (250, 470)) 
+    $ truck1 = Rec("rec", (200, 590), (250, 590), (200, 470), (250, 470)) 
+    $ truck2 = Rec("rec", (120, 590), (170, 590), (120, 470), (170, 470))
     
     $ other_objects = [store.rec1, store.rec3, store.obs1, store.obs2] # store.truck]
     
@@ -302,10 +304,19 @@ label main_loop:
             if not store.obs2.hidden:
                 store.obs2.back(5)
                 
+            if store.truck1 in other_objects:
+                truck_movement()
+                
+            if store.truck2 in other_objects:
+                truck_movement()
+                
         def truck_movement():
                 
-            if not store.truck.hidden:
-                store.truck.forward(10)
+            if not store.truck1.hidden:
+                store.truck1.forward(10)
+                
+            if not store.truck2.hidden:
+                store.truck2.forward(2)
         
         def swerve(limit):
             move_choice = ["back", "forward", "apart", "squeeze", None]
@@ -321,16 +332,17 @@ label main_loop:
                 if not full_counter % 10:
                     full_movement = random.choice(move_choice)
                 
-                if 20 < full_counter < 120:
+                if 0 < full_counter < 120:
                     move_recs(full_movement, off_screen=True)
                     
-                    if store.truck in other_objects:
+                    if store.truck1 in other_objects or store.truck2 in other_objects:
                         truck_movement()
                     
                     if store.rec1 in other_objects or store.rec3 in other_objects:
                         pass
-                    else:
-                        other_objects.append(store.truck)
+                    elif store.truck1 not in other_objects and store.truck2 not in other_objects:
+                        store.truck1.respawn(other_objects)
+                        store.truck2.respawn(other_objects)
                     
                 else:
                     move_recs(full_movement)
@@ -341,12 +353,12 @@ label main_loop:
                         
                 
                 # respawn
-                if obs1.is_off_screen():
-                    store.obs1.respawn()
+                #if obs1.is_off_screen():
+                #    store.obs1.respawn(other_objects)
                     #store.obs1 = Rec((40, 50), (90, 50), (40, 10), (90, 10), property="back")
                     
-                if obs2.is_off_screen():
-                    store.obs2.respawn()
+                #if obs2.is_off_screen():
+                #    store.obs2.respawn(other_objects)
                     #store.obs2 = Rec((250, 50), (300, 50), (250, 10), (300, 10), property="back") 
                 
                 renpy.show_screen('sample')
